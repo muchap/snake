@@ -5,7 +5,7 @@
 	Basic version of snake eating apples that dies when hit the edge of the screen  
 	Based on tutorial @ http://inventwithpython.com/pygame
 	
-	v0.2 Added a start-screen which will ask the player to press any key to start the game
+	v0.3 Created difficuluty levels - EASY (no borders), MEDIUM (edge of the screen = border), HARD (no borders but high speed)
 '''
 
 import random, pygame, sys
@@ -33,6 +33,10 @@ DOWN = 'down'
 LEFT = 'left'
 RIGHT = 'right'
 
+EASY = 'easy'
+MEDIUM = 'medium'
+HARD = 'hard'
+
 HEAD = 0
 FPS = 15
 
@@ -47,12 +51,13 @@ def main():
 
 	while True:
 		isGameOver = False
-		showStartScreen()
-		runGame()
+		level = showStartScreen()
+
+		runGame(level)
 		if isGameOver:
 			drawGameOver()
 		
-def runGame():
+def runGame(level):
 	x = CELLWIDTH / 2
 	y = CELLHEIGHT / 2
 	#draw snake
@@ -68,6 +73,11 @@ def runGame():
 	
 	# Start the apple in a random place.
 	apple = getRandomLocation(wormCoords)
+	
+	if level == HARD:
+		FPS = 35
+	else:
+		FPS = 15
 	
 	global isGameOver
 	isGameOver = False
@@ -115,10 +125,23 @@ def runGame():
 			newHead = {'x':wormCoords[HEAD]['x'], 'y':wormCoords[HEAD]['y'] + 1}
 		wormCoords.insert(0,newHead)
 
-		# If snake hits the boundaries, game over
-		if 	(wormCoords[HEAD]['x'] == CELLWIDTH) or (wormCoords[HEAD]['x'] == -1) or (wormCoords[HEAD]['y'] == -1) or (wormCoords[HEAD]['y'] == CELLHEIGHT):
-			isGameOver = True
-			return
+		#DIFFICULT LEVEL
+		if level == EASY or level == HARD:
+			# If snake crosses the boundaries, make it enter from the other side
+			if 	(wormCoords[HEAD]['x'] >= CELLWIDTH) or (wormCoords[HEAD]['x'] <= -1) or (wormCoords[HEAD]['y'] <= -1) or (wormCoords[HEAD]['y'] >= CELLHEIGHT):
+				if direction == LEFT:
+					wormCoords[HEAD]['x'] = CELLWIDTH - 1
+				if direction == RIGHT:
+					wormCoords[HEAD]['x'] = 0
+				if direction == UP:
+					wormCoords[HEAD]['y'] = CELLHEIGHT - 1
+				if direction == DOWN:
+					wormCoords[HEAD]['y'] = 0
+		elif level == MEDIUM:
+			# If snake hits the boundaries, game over
+			if 	(wormCoords[HEAD]['x'] == CELLWIDTH) or (wormCoords[HEAD]['x'] == -1) or (wormCoords[HEAD]['y'] == -1) or (wormCoords[HEAD]['y'] == CELLHEIGHT):
+				isGameOver = True
+				return
 		
 	
 		DISPLAYSURF.fill(BGCOLOR)
@@ -148,16 +171,48 @@ def showStartScreen():
 		if blink%5<2:
 			drawMsg('Press a key to play......')
 			
-		if checkForKeyPress():
-			pygame.event.get()
-			return
+		# level options - easy (no boundries), medium (boundries), hard (boundries + speed)
+		easyRect, mediumRect, hardRect = drawLevels()
 		
+		for event in pygame.event.get(): # event handling loop
+			if event.type == MOUSEBUTTONUP:
+				mousex, mousey = event.pos # syntactic sugar
+				
+				# check for clicks on the difficulty buttons
+				if easyRect.collidepoint(mousex, mousey):
+					return EASY
+				if mediumRect.collidepoint(mousex, mousey):
+					return MEDIUM
+				if hardRect.collidepoint(mousex, mousey):
+					return HARD					
+			if event.type == QUIT or (event.type == KEYUP and event.key == K_ESCAPE):
+				terminate()		
+
 		pygame.display.update()
 		FPSCLOCK.tick(FPS)
 		blink += 1
 		
 	
 	#TODO: hall of fame
+
+def drawLevels():
+	OPTIONFONT = pygame.font.Font('freesansbold.ttf', 30)
+	easySurf = OPTIONFONT.render('EASY', True, WHITE, DARKGREEN)
+	easyRect = easySurf.get_rect()
+	easyRect.topleft = (80, WINDOWHEIGHT - 100)
+	DISPLAYSURF.blit(easySurf,easyRect)
+	
+	mediumSurf = OPTIONFONT.render('MEDIUM', True, WHITE, DARKGREEN)
+	mediumRect = mediumSurf.get_rect()
+	mediumRect.topleft = (220, WINDOWHEIGHT - 100)
+	DISPLAYSURF.blit(mediumSurf,mediumRect)
+
+	hardSurf = OPTIONFONT.render('HARD', True, WHITE, DARKGREEN)
+	hardRect = hardSurf.get_rect()
+	hardRect.topleft = (400, WINDOWHEIGHT - 100)
+	DISPLAYSURF.blit(hardSurf,hardRect)
+	
+	return easyRect, mediumRect, hardRect
 
 def drawGameOver():
 	gameOverFont = pygame.font.Font('freesansbold.ttf', 150)
