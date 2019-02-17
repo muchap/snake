@@ -3,9 +3,7 @@
 	By Piotr Mucha
 	Based on tutorial @ http://inventwithpython.com/pygame
 	
-	v2.0 Restructured the code and implemented classes.
-		 Added the image of apple
-
+	v2.1 Changed the style of the snake
 '''
 
 import random, pygame, os, sys, shelve
@@ -39,7 +37,11 @@ if getattr(sys, 'frozen', False):
     wd = sys._MEIPASS
 else:
     wd = ''    
-IMAGESDICT = {'apple': pygame.image.load(os.path.join(wd,"apple.png"))}
+IMAGESDICT = {
+	'apple': pygame.image.load(os.path.join(wd,"apple.png")),
+	'snake_body': pygame.image.load(os.path.join(wd,"ball.png")),
+	'snake_head': pygame.image.load(os.path.join(wd,"head.png"))
+	}
 FONT = os.path.join(wd,"alpha_echo.ttf")
 		
 
@@ -243,6 +245,7 @@ class PlayField(SnakeGame):
 		It's the one "showing" everything to the user
 		'''
 		self.DISPLAYSURF.fill(BGCOLOR)
+		#self.fill_gradient(self.DISPLAYSURF, (170, 255, 255), (255, 255, 255))
 		if level == MEDIUM:
 			self.drawBorder()
 		#self.drawGrid()
@@ -286,11 +289,9 @@ class PlayField(SnakeGame):
 			x = self.applex * CELLSIZE
 			y = self.appley * CELLSIZE
 			appleRect = IMAGESDICT['apple'].get_rect()
-			appleRect.topleft = (x-3,y-3)
+			appleRect.topleft = (x,y)
 			self.DISPLAYSURF.blit(IMAGESDICT['apple'],appleRect)
-			#appleRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
-			#pygame.draw.rect(self.DISPLAYSURF, RED, appleRect)
-
+			
 		if 	(self.wormCoords[HEAD]['x'] < 25 and self.wormCoords[HEAD]['y'] == 9):
 			newHead = {'x':self.wormCoords[HEAD]['x'] + 1, 'y':self.wormCoords[HEAD]['y']}
 		elif (self.wormCoords[HEAD]['x'] == 25 and self.wormCoords[HEAD]['y'] > 2):
@@ -302,19 +303,17 @@ class PlayField(SnakeGame):
 
 		self.wormCoords.insert(0,newHead)
 
-
 		for coord in self.wormCoords:
 			x = coord['x'] * CELLSIZE
 			y = coord['y'] * CELLSIZE
-			wormSegmentRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
-			wormInnerSegmentRect = pygame.Rect(x + 4, y + 4, CELLSIZE - 8, CELLSIZE - 8)
 			if self.wormCoords[0] == coord:
-				pygame.draw.rect(self.DISPLAYSURF, DARKRED, wormSegmentRect)
-				pygame.draw.rect(self.DISPLAYSURF, RED, wormInnerSegmentRect)
+				snakeHeadRect = IMAGESDICT['snake_head'].get_rect()
+				snakeHeadRect.topleft = (x,y)
+				self.DISPLAYSURF.blit(IMAGESDICT['snake_head'],snakeHeadRect)
 			else:
-				pygame.draw.rect(self.DISPLAYSURF, DARKGREEN, wormSegmentRect)
-				pygame.draw.rect(self.DISPLAYSURF, GREEN, wormInnerSegmentRect)
-
+				snakeBodyRect = IMAGESDICT['snake_body'].get_rect()
+				snakeBodyRect.topleft = (x,y)
+				self.DISPLAYSURF.blit(IMAGESDICT['snake_body'],snakeBodyRect)
 	def showStartScreen(self, level):
 		'''
 		Generate the main menu and waits till the user chooses difficulty level
@@ -518,6 +517,47 @@ class PlayField(SnakeGame):
 		pressKeyRect.midtop = (midtopx, midtopy)
 		self.DISPLAYSURF.blit(pressKeySurf,pressKeyRect)
 
+	def fill_gradient(self, surface, color, gradient, rect=None, vertical=True, forward=True):
+		'''fill a surface with a gradient pattern
+		Parameters:
+		color -> starting color
+		gradient -> final color
+		rect -> area to fill; default is surface's rect
+		vertical -> True=vertical; False=horizontal
+		forward -> True=forward; False=reverse
+		
+		Pygame recipe: http://www.pygame.org/wiki/GradientCode
+		'''
+		if rect is None: rect = surface.get_rect()
+		x1,x2 = (rect.left, rect.right)
+		y1,y2 = rect.top, rect.bottom
+		if vertical: h = y2-y1
+		else:        h = x2-x1
+		if forward: a, b = color, gradient
+		else:       b, a = color, gradient
+		rate = (
+			float(b[0]-a[0])/h,
+			float(b[1]-a[1])/h,
+			float(b[2]-a[2])/h
+		)
+		fn_line = pygame.draw.line
+		if vertical:
+			for line in range(y1,y2):
+				color = (
+					min(max(a[0]+(rate[0]*(line-y1)),0),255),
+					min(max(a[1]+(rate[1]*(line-y1)),0),255),
+					min(max(a[2]+(rate[2]*(line-y1)),0),255)
+				)
+				fn_line(surface, color, (x1,line), (x2,line))
+		else:
+			for col in range(x1,x2):
+				color = (
+					min(max(a[0]+(rate[0]*(col-x1)),0),255),
+					min(max(a[1]+(rate[1]*(col-x1)),0),255),
+					min(max(a[2]+(rate[2]*(col-x1)),0),255)
+				)
+				fn_line(surface, color, (col,y1), (col,y2))
+	
 class Apple(object):
 	def __init__(self, snake, level):
 		'''
@@ -540,7 +580,7 @@ class Apple(object):
 		x = self.x * CELLSIZE
 		y = self.y * CELLSIZE
 		appleRect = IMAGESDICT['apple'].get_rect()
-		appleRect.topleft = (x-3,y-3)
+		appleRect.topleft = (x,y)
 		surface.blit(IMAGESDICT['apple'],appleRect)
 		#appleRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
 		#pygame.draw.rect(surface, RED, appleRect)
@@ -625,15 +665,14 @@ class Snake(object):
 		for coord in self.wormCoords:
 			x = coord['x'] * CELLSIZE
 			y = coord['y'] * CELLSIZE
-			wormSegmentRect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
-			wormInnerSegmentRect = pygame.Rect(x + 4, y + 4, CELLSIZE - 8, CELLSIZE - 8)
-
 			if self.wormCoords[0] == coord:
-				pygame.draw.rect(surface, DARKRED, wormSegmentRect)
-				pygame.draw.rect(surface, RED, wormInnerSegmentRect)
+				snakeHeadRect = IMAGESDICT['snake_head'].get_rect()
+				snakeHeadRect.topleft = (x,y)
+				surface.blit(IMAGESDICT['snake_head'],snakeHeadRect)
 			else:
-				pygame.draw.rect(surface, DARKGREEN, wormSegmentRect)
-				pygame.draw.rect(surface, GREEN, wormInnerSegmentRect)
+				snakeBodyRect = IMAGESDICT['snake_body'].get_rect()
+				snakeBodyRect.topleft = (x,y)
+				surface.blit(IMAGESDICT['snake_body'],snakeBodyRect)
 
 def main():
 	snake = SnakeGame()
