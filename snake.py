@@ -5,6 +5,7 @@
 	Basic version of snake eating apples that dies when hit the edge of the screen  
 	Based on tutorial @ http://inventwithpython.com/pygame
 	
+	v0.2 Added a start-screen which will ask the player to press any key to start the game
 '''
 
 import random, pygame, sys
@@ -36,7 +37,7 @@ HEAD = 0
 FPS = 15
 
 def main():
-	global DISPLAYSURF, BASICFONT, FPSCLOCK
+	global DISPLAYSURF, BASICFONT, FPSCLOCK, isGameOver
 	
 	pygame.init()
 	DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH,WINDOWHEIGHT))
@@ -45,8 +46,11 @@ def main():
 	pygame.display.set_caption('Wormy')
 
 	while True:
+		isGameOver = False
+		showStartScreen()
 		runGame()
-		terminate()
+		if isGameOver:
+			drawGameOver()
 		
 def runGame():
 	x = CELLWIDTH / 2
@@ -64,7 +68,10 @@ def runGame():
 	
 	# Start the apple in a random place.
 	apple = getRandomLocation(wormCoords)
-
+	
+	global isGameOver
+	isGameOver = False
+	
 	#main loop
 	while(True):		
 		# event handling loop
@@ -87,6 +94,7 @@ def runGame():
 		# check if snake has eaten itself
 		for wormBody in wormCoords[1:]:
 			if wormCoords[HEAD]['x'] == wormBody['x'] and wormCoords[HEAD]['y'] == wormBody['y']:
+				isGameOver = True
 				return
 		
 		# check if worm has eaten an apply
@@ -107,8 +115,9 @@ def runGame():
 			newHead = {'x':wormCoords[HEAD]['x'], 'y':wormCoords[HEAD]['y'] + 1}
 		wormCoords.insert(0,newHead)
 
-		# If snake crosses the boundaries, make it enter from the other side
+		# If snake hits the boundaries, game over
 		if 	(wormCoords[HEAD]['x'] == CELLWIDTH) or (wormCoords[HEAD]['x'] == -1) or (wormCoords[HEAD]['y'] == -1) or (wormCoords[HEAD]['y'] == CELLHEIGHT):
+			isGameOver = True
 			return
 		
 	
@@ -121,6 +130,68 @@ def runGame():
 		pygame.display.update()
 		FPSCLOCK.tick(FPS)
 	
+def showStartScreen():
+	# TODO: running snake eating apples in the background
+
+	fontsize = 100
+	blink = 0
+
+	while True:
+		DISPLAYSURF.fill(BGCOLOR)
+		
+		mainLogo = pygame.font.Font('freesansbold.ttf', fontsize)
+		mainLogoSurf = mainLogo.render('SNAKE', True, GREEN)
+		mainLogoRect = mainLogoSurf.get_rect()
+		mainLogoRect.center = (WINDOWWIDTH / 2, 120)
+		DISPLAYSURF.blit(mainLogoSurf,mainLogoRect)
+		
+		if blink%5<2:
+			drawMsg('Press a key to play......')
+			
+		if checkForKeyPress():
+			pygame.event.get()
+			return
+		
+		pygame.display.update()
+		FPSCLOCK.tick(FPS)
+		blink += 1
+		
+	
+	#TODO: hall of fame
+
+def drawGameOver():
+	gameOverFont = pygame.font.Font('freesansbold.ttf', 150)
+	GOverSurface1 = gameOverFont.render('Game', True, WHITE)
+	GOverSurface2 = gameOverFont.render('Over', True, WHITE)
+	GOverRect1 = GOverSurface1.get_rect()
+	GOverRect2 = GOverSurface1.get_rect()
+	GOverRect1.midtop = (WINDOWWIDTH / 2, 10)
+	GOverRect2.midtop = (WINDOWWIDTH / 2,GOverRect1.height + 10 + 25)
+	
+	DISPLAYSURF.blit(GOverSurface1,GOverRect1)
+	DISPLAYSURF.blit(GOverSurface2,GOverRect2)
+	drawPressMsg()
+	pygame.display.update()
+	pygame.time.wait(500)
+	
+	checkForKeyPress() # clear out any key presses in the event queue
+	
+	while True:
+		if checkForKeyPress():
+			pygame.event.get() # clear event queue
+			return
+
+def drawPressMsg():
+	pressKeySurf = BASICFONT.render('Press a key to play...', True, WHITE)
+	pressKeyRect = pressKeySurf.get_rect()
+	pressKeyRect.midtop = (WINDOWWIDTH / 2, WINDOWHEIGHT - 30)
+	DISPLAYSURF.blit(pressKeySurf,pressKeyRect)
+
+def drawMsg(message):
+	pressKeySurf = BASICFONT.render(message, True, WHITE)
+	pressKeyRect = pressKeySurf.get_rect()
+	pressKeyRect.midtop = (WINDOWWIDTH / 2, WINDOWHEIGHT - 30)
+	DISPLAYSURF.blit(pressKeySurf,pressKeyRect)
 
 def drawQMsg():
 	messageSurf = BASICFONT.render('[Q] for Quit', True, WHITE)
