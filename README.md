@@ -5,6 +5,4 @@ There are a few versions of SnakeGame that I created over a time (different comm
   
   Version 1.0 The game mechanism uses solely functions (no classes)
     
-  Version 2.0 The code restructured into classes
-  
-  Version 3.0 Upgraded the graphics
+  Version 2.0 The code restructured into classes and upgraded the graphics
