@@ -5,10 +5,10 @@
 	Basic version of snake eating apples that dies when hit the edge of the screen  
 	Based on tutorial @ http://inventwithpython.com/pygame
 	
-	v0.3 Created difficuluty levels - EASY (no borders), MEDIUM (edge of the screen = border), HARD (no borders but high speed)
+	#0.4 Implemented saving the score
 '''
 
-import random, pygame, sys
+import random, pygame, sys, shelve
 from pygame.locals import *
 
 WINDOWWIDTH = 640
@@ -53,11 +53,31 @@ def main():
 		isGameOver = False
 		level = showStartScreen()
 
-		runGame(level)
+		d = shelve.open('score.txt')
+		if level == EASY and d.get('scoreEasy', None):
+			bestScore = d['scoreEasy']
+		elif level == MEDIUM and d.get('scoreMedium', None):
+			bestScore = d['scoreMedium']
+		elif level == HARD and d.get('scoreHard', None):
+			bestScore = d['scoreHard']
+		else:
+			bestScore = 0
+		d.close()
+
+		score = runGame(level, bestScore)
 		if isGameOver:
 			drawGameOver()
+
+		d = shelve.open('score.txt')
+		if level == EASY and score > bestScore:
+			d['scoreEasy'] = score
+		elif level == MEDIUM and score > bestScore:
+			d['scoreMedium'] = score
+		elif level == HARD and score > bestScore:
+			d['scoreHard'] = score
+		d.close()
 		
-def runGame(level):
+def runGame(level, bestScore):
 	x = CELLWIDTH / 2
 	y = CELLHEIGHT / 2
 	#draw snake
@@ -105,7 +125,7 @@ def runGame(level):
 		for wormBody in wormCoords[1:]:
 			if wormCoords[HEAD]['x'] == wormBody['x'] and wormCoords[HEAD]['y'] == wormBody['y']:
 				isGameOver = True
-				return
+				return score
 		
 		# check if worm has eaten an apply
 		if (wormCoords[HEAD]['x'] == apple['x'] and wormCoords[HEAD]['y'] == apple['y']):
@@ -141,14 +161,14 @@ def runGame(level):
 			# If snake hits the boundaries, game over
 			if 	(wormCoords[HEAD]['x'] == CELLWIDTH) or (wormCoords[HEAD]['x'] == -1) or (wormCoords[HEAD]['y'] == -1) or (wormCoords[HEAD]['y'] == CELLHEIGHT):
 				isGameOver = True
-				return
+				return score
 		
 	
 		DISPLAYSURF.fill(BGCOLOR)
 		drawGrid()
 		drawWorm(wormCoords)
 		drawApple(apple)
-		drawScore(score)
+		drawScore(score, bestScore)
 		drawQMsg()
 		pygame.display.update()
 		FPSCLOCK.tick(FPS)
@@ -296,12 +316,17 @@ def drawGrid():
 		top = cely * CELLSIZE
 		pygame.draw.line(DISPLAYSURF,DARKGRAY, (0,top), (WINDOWWIDTH,top))
 
-def drawScore(score):
+def drawScore(score, bestScore):
 	scoreSurf = BASICFONT.render('Score: %s' % (score), True, WHITE)
 	scoreRect = scoreSurf.get_rect()
 	scoreRect.topleft = (WINDOWWIDTH - 140, 10)
 	DISPLAYSURF.blit(scoreSurf, scoreRect)
 	
+	bestscoreSurf = BASICFONT.render('Best score: %s' % (bestScore), True, WHITE)
+	bestscoreRect = bestscoreSurf.get_rect()
+	bestscoreRect.topleft = (WINDOWWIDTH - 140, 40)
+	DISPLAYSURF.blit(bestscoreSurf, bestscoreRect)
+
 def terminate():
 	pygame.quit()
 	sys.exit()
