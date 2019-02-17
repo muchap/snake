@@ -5,7 +5,7 @@
 	Basic version of snake eating apples that dies when hit the edge of the screen  
 	Based on tutorial @ http://inventwithpython.com/pygame
 	
-	#0.4 Implemented saving the score
+	v0.5 Added graphics of border when level is MEDIUM
 '''
 
 import random, pygame, sys, shelve
@@ -24,6 +24,7 @@ RED       = (255,   0,   0)
 GREEN     = (  0, 255,   0)
 DARKGREEN = (  0, 155,   0)
 DARKGRAY  = ( 40,  40,  40)
+BLUE      = (  0,   0, 255)
 BGCOLOR = BLACK
 
 WORMCOLOR = GREEN
@@ -92,15 +93,19 @@ def runGame(level, bestScore):
 	score = 0
 	
 	# Start the apple in a random place.
-	apple = getRandomLocation(wormCoords)
+	apple = getRandomLocation(wormCoords, level)
 	
 	if level == HARD:
 		FPS = 35
 	else:
 		FPS = 15
 	
+	
 	global isGameOver
 	isGameOver = False
+	if level == MEDIUM:
+		drawBorder()
+	
 	
 	#main loop
 	while(True):		
@@ -129,7 +134,7 @@ def runGame(level, bestScore):
 		
 		# check if worm has eaten an apply
 		if (wormCoords[HEAD]['x'] == apple['x'] and wormCoords[HEAD]['y'] == apple['y']):
-			apple = getRandomLocation(wormCoords)
+			apple = getRandomLocation(wormCoords, level)
 			score += 1
 		else:
 			del wormCoords[-1] # remove worm's tail segment		
@@ -159,12 +164,14 @@ def runGame(level, bestScore):
 					wormCoords[HEAD]['y'] = 0
 		elif level == MEDIUM:
 			# If snake hits the boundaries, game over
-			if 	(wormCoords[HEAD]['x'] == CELLWIDTH) or (wormCoords[HEAD]['x'] == -1) or (wormCoords[HEAD]['y'] == -1) or (wormCoords[HEAD]['y'] == CELLHEIGHT):
+			if 	(wormCoords[HEAD]['x'] == CELLWIDTH - 1) or (wormCoords[HEAD]['x'] == 0) or (wormCoords[HEAD]['y'] == 0) or (wormCoords[HEAD]['y'] == CELLHEIGHT - 1):
 				isGameOver = True
 				return score
 		
 	
 		DISPLAYSURF.fill(BGCOLOR)
+		if level == MEDIUM:
+			drawBorder()
 		drawGrid()
 		drawWorm(wormCoords)
 		drawApple(apple)
@@ -215,6 +222,13 @@ def showStartScreen():
 	
 	#TODO: hall of fame
 
+def drawBorder():
+	pygame.draw.rect(DISPLAYSURF, DARKGRAY, pygame.Rect(0,0,WINDOWWIDTH,CELLSIZE))
+	pygame.draw.rect(DISPLAYSURF, DARKGRAY, pygame.Rect(WINDOWWIDTH-CELLSIZE,0,WINDOWWIDTH-CELLSIZE,WINDOWHEIGHT))
+	pygame.draw.rect(DISPLAYSURF, DARKGRAY, pygame.Rect(0,0,CELLSIZE,WINDOWHEIGHT))
+	pygame.draw.rect(DISPLAYSURF, DARKGRAY, pygame.Rect(0,WINDOWHEIGHT-CELLSIZE,WINDOWWIDTH,WINDOWHEIGHT))
+	pygame.draw.rect(DISPLAYSURF, BLUE, pygame.Rect(CELLSIZE-1,CELLSIZE-1,WINDOWWIDTH-2*CELLSIZE+1,WINDOWHEIGHT-2*CELLSIZE+1),1)
+	
 def drawLevels():
 	OPTIONFONT = pygame.font.Font('freesansbold.ttf', 30)
 	easySurf = OPTIONFONT.render('EASY', True, WHITE, DARKGREEN)
@@ -286,10 +300,10 @@ def checkForKeyPress():
 		terminate()
 	return keyUpEvents[0].key
 		
-def getRandomLocation(wormCoords):
+def getRandomLocation(wormCoords, level):
 	while True:
-		x = random.randint(0, CELLWIDTH - 1)
-		y = random.randint(0, CELLHEIGHT - 1)
+		x = random.randint(0 + 1*(level==MEDIUM), CELLWIDTH - 1 - 1*(level==MEDIUM))
+		y = random.randint(0 + 1*(level==MEDIUM), CELLHEIGHT - 1 - 1*(level==MEDIUM))
 		if {'x': x, 'y': y} not in wormCoords:
 			return {'x': x, 'y': y}
 		
